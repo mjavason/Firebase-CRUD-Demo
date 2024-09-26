@@ -4,7 +4,9 @@ import cors from 'cors';
 import axios from 'axios';
 import dotenv from 'dotenv';
 import morgan from 'morgan';
+import admin from 'firebase-admin';
 import { setupSwagger } from './swagger.config';
+import crudRoutes from './crud.routes';
 
 //#region App Setup
 const app = express();
@@ -12,6 +14,14 @@ const app = express();
 dotenv.config({ path: './.env' });
 const PORT = process.env.PORT || 5000;
 const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
+const serviceAccount = require('./serviceAccountKey.json');
+// crud-demo-d6098-firebase-adminsdk-z9mzl-11d81271cb.json
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+  databaseURL: 'https://crud-demo-d6098.firebaseio.com',
+});
+const db = admin.firestore();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -22,7 +32,9 @@ setupSwagger(app, BASE_URL);
 //#endregion App Setup
 
 //#region Code here
-console.log('Hello world');
+
+app.use('/api', crudRoutes(db));
+
 //#endregion
 
 //#region Server Setup
@@ -92,7 +104,7 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   console.log(`${'\x1b[31m'}`); // start color red
   console.log(`${err.message}`);
   console.log(`${'\x1b][0m]'}`); //stop color
-  
+
   return res
     .status(500)
     .send({ success: false, status: 500, message: err.message });
